@@ -1,8 +1,11 @@
+import os
+
 from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-DEFAULT_TLD = "svc.knaive.local"
+# The default domain to use for services if spec.fqdn is not provided
+DEFAULT_SVC_DOMAIN = os.environ.get("DEFAULT_SVC_DOMAIN", "example.com")
 
 
 def get_service_account(parent):
@@ -100,8 +103,8 @@ def get_ingress(parent, service_name, service_port, fqdn, path):
     }
 
 
-@app.route("/sync", methods=["POST"])
-def sync():
+@app.route("/appdeploy", methods=["POST"])
+def appdeploy():
 
     observed = request.get_json()
 
@@ -109,7 +112,9 @@ def sync():
 
     selector_labels = {"service.knaive.xyz": parent["metadata"]["name"]}
 
-    fqdn = parent["spec"].get("host", f"{parent['metadata']['name']}.{DEFAULT_TLD}")
+    fqdn = parent["spec"].get(
+        "host", f"{parent['metadata']['name']}.{DEFAULT_SVC_DOMAIN}"
+    )
     path = parent["spec"].get("path", "/")
     url = f"https://{fqdn}{path}"
 
@@ -147,4 +152,13 @@ def healthz():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8888, debug=True)
+
+    # Get the host and port from the environment
+    host = os.environ.get("HOST", "0.0.0.0")
+    port = int(os.environ.get("PORT", 8888))
+
+    # Get the debug mode from the environment
+    debug = os.environ.get("DEBUG", "False").lower() == "true"
+
+    # Run the app
+    app.run(host=host, port=port, debug=debug)

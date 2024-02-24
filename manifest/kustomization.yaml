@@ -7,6 +7,6 @@ resources:
   - controller.yaml
 
 configMapGenerator:
-  - name: appdeploys-knaive-controller
+  - name: knaive-controller
     files:
       - main.py
