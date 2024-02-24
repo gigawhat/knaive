@@ -1,0 +1,8 @@
+apiVersion: knaive.xyz/v1
+kind: AppDeploy
+metadata:
+  name: foo
+spec:
+  port: 80
+  container:
+    image: nginx:latest

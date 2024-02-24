@@ -1,0 +1,70 @@
+---
+apiVersion: metacontroller.k8s.io/v1alpha1
+kind: CompositeController
+metadata:
+  name: appdeploys-knaive-controller
+spec:
+  generateSelector: true
+  parentResource:
+    apiVersion: knaive.xyz/v1
+    resource: appdeploys
+  childResources:
+    - apiVersion: apps/v1
+      resource: deployments
+    - apiVersion: v1
+      resource: services
+    - apiVersion: v1
+      resource: serviceaccounts
+    - apiVersion: networking.k8s.io/v1
+      resource: ingresses
+  hooks:
+    sync:
+      webhook:
+        url: http://appdeploys-knaive-controller.knaive-system.svc:8888/sync
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: appdeploys-knaive-controller
+  labels:
+    app: appdeploys-knaive-controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: appdeploys-knaive-controller
+  template:
+    metadata:
+      labels:
+        app: appdeploys-knaive-controller
+    spec:
+      containers:
+        - name: appdeploys-knaive-controller
+          image: python:3.12
+          command: ["sh", "-c"]
+          args:
+            - |
+              pip install flask
+              python /app/main.py
+          resources: {}
+          ports:
+            - containerPort: 8888
+          volumeMounts:
+            - name: app
+              mountPath: /app
+      volumes:
+        - name: app
+          configMap:
+            name: appdeploys-knaive-controller
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: appdeploys-knaive-controller
+spec:
+  selector:
+    app: appdeploys-knaive-controller
+  ports:
+    - protocol: TCP
+      port: 8888
+      targetPort: 8888
