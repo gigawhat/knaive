@@ -55,13 +55,7 @@ spec:
               path: /healthz
               port: http
           resources: {}
-          volumeMounts:
-            - name: app
-              mountPath: /app
-      volumes:
-        - name: app
-          configMap:
-            name: knaive-controller
+
 ---
 apiVersion: v1
 kind: Service

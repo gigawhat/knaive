@@ -5,3 +5,5 @@
 - [ ] Set cert-manager ingress annotations
 - [ ] Update readme. Include steps to setup ingress, cert-manager, and cert-manager issuer
 - [ ] Add tests
+- [ ] Register domain
+- [ ] Create logo

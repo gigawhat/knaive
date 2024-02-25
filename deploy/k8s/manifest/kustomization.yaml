@@ -5,8 +5,3 @@ namespace: knaive-system
 resources:
   - namespace.yaml
   - controller.yaml
-
-configMapGenerator:
-  - name: knaive-controller
-    files:
-      - main.py
