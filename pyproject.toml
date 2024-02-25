@@ -8,10 +8,10 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 Flask = "^3.0.2"
-pytest = "^8.0.2"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
+pytest = "^8.0.2"
 
 [build-system]
 requires = ["poetry-core"]
