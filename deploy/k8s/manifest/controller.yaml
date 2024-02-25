@@ -40,12 +40,7 @@ spec:
     spec:
       containers:
         - name: knaive-controller
-          image: python:3.12
-          command: ["sh", "-c"]
-          args:
-            - |
-              pip install flask
-              python /app/main.py
+          image: ghcr.io/gigawhat/knaive:latest
           ports:
             - containerPort: 8888
               name: http
@@ -55,7 +50,6 @@ spec:
               path: /healthz
               port: http
           resources: {}
-
 ---
 apiVersion: v1
 kind: Service
