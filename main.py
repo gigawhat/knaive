@@ -1,4 +1,5 @@
 import os
+from dataclasses import dataclass
 
 from flask import Flask, jsonify, request
 
@@ -6,7 +7,7 @@ app = Flask(__name__)
 
 
 class AppDeploy:
-    def __init__(self, parent):
+    def __init__(self, parent: dict):
         self.name = parent.get("metadata").get("name")
         self.service_account = self.name
         self.container = parent.get("spec").get("container")
@@ -18,15 +19,16 @@ class AppDeploy:
         )  # TODO: make default tld configurable
         self.path = parent.get("spec").get("path", "/")
         self.ingress_annotations = parent.get("spec").get("ingress_annotations", {})
+        self.url = f"https://{self.fqdn}{self.path}"
 
-    def get_serviceaccount(self):
+    def get_serviceaccount(self) -> dict:
         return {
             "apiVersion": "v1",
             "kind": "ServiceAccount",
             "metadata": {"name": self.service_account, "labels": self.labels},
         }
 
-    def get_deployment(self):
+    def get_deployment(self) -> dict:
         return {
             "apiVersion": "apps/v1",
             "kind": "Deployment",
@@ -50,7 +52,7 @@ class AppDeploy:
             },
         }
 
-    def get_service(self):
+    def get_service(self) -> dict:
         return {
             "apiVersion": "v1",
             "kind": "Service",
@@ -61,7 +63,7 @@ class AppDeploy:
             },
         }
 
-    def get_ingress(self):
+    def get_ingress(self) -> dict:
         return {
             "apiVersion": "networking.k8s.io/v1",
             "kind": "Ingress",
@@ -93,38 +95,62 @@ class AppDeploy:
             },
         }
 
+    def get_children(self) -> list[dict]:
+        return [
+            self.get_deployment(),
+            self.get_ingress(),
+            self.get_service(),
+            self.get_serviceaccount(),
+        ]
+
+
+@dataclass
+class Status:
+    deployments: int
+    ingresses: int
+    serviceaccounts: int
+    services: int
+    url: str
+
+    def __init__(self, children, url):
+        self.deployments = len(children["Deployment.apps/v1"])
+        self.ingresses = len(children["Ingress.networking.k8s.io/v1"])
+        self.serviceaccounts = len(children["ServiceAccount.v1"])
+        self.services = len(children["Service.v1"])
+        self.url = url
+
 
 @app.route("/appdeploy", methods=["POST"])
 def appdeploy():
     hook_request = request.get_json()
     parent = hook_request.get("parent")
+
+    if parent is None:
+        return jsonify({"error": "parent is required"}), 400
+
     children = hook_request.get("children")
+
+    if children is None:
+        return jsonify({"error": "children is required"}), 400
+
     app = AppDeploy(parent)
+    children = Status(children, app.url)
 
     return jsonify(
         {
-            "status": {
-                "deployments": len(children["Deployment.apps/v1"]),
-                "ingresses": len(children["Ingress.networking.k8s.io/v1"]),
-                "serviceaccounts": len(children["ServiceAccount.v1"]),
-                "services": len(children["Service.v1"]),
-                "url": f"https://{app.fqdn}{app.path}",
-            },
-            "children": [
-                app.get_deployment(),
-                app.get_ingress(),
-                app.get_service(),
-                app.get_serviceaccount(),
-            ],
+            "status": children.__dict__,
+            "children": app.get_children(),
         }
     )
 
 
+# Health check
 @app.route("/healthz", methods=["GET"])
 def healthz():
     return "OK"
 
 
+# Main
 if __name__ == "__main__":
 
     # Get the environment variables
